@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Wynncraft Item Roll Calculator</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<main>
+  <h1>Wynncraft Item Roll Calculator</h1>
+  {% macro number(name, label, default='', step='1', required=false) %}
+    <label><span>{{ label }}:</span>
+      <input type="number" name="{{ name }}" value="{{ form.get(name, default) }}"
+             step="{{ step }}"{% if required %} required{% endif %}>
+    </label>
+  {% endmacro %}
+
+  <form method="post">
+    <h2>Normal distribution</h2>
+    {{ number('mean', 'Mean', '0', 'any', true) }}
+    {{ number('stddev', 'Standard deviation', '1', 'any', true) }}
+    <button name="action" value="normal">Plot normal curve</button>
+  </form>
+  {% if action == 'normal' and message %}<p role="status">{{ message }}</p>{% endif %}
+  {% if points %}
+    <svg viewBox="0 0 620 225" role="img" aria-label="Normal probability density curve">
+      <path d="M45 15 V190 H575" fill="none" stroke="currentColor"/>
+      <polyline points="{{ points }}" fill="none" stroke="steelblue" stroke-width="2"/>
+      {% for tick in ticks %}
+        <text x="{{ [45, 310, 575][loop.index0] }}" y="212" text-anchor="middle">{{ '%g'|format(tick) }}</text>
+      {% endfor %}
+    </svg>
+  {% endif %}
+
+  <form method="post">
+    <h2>Item rolls</h2>
+    {{ number('low', 'Minimum integer roll', '1', '1', true) }}
+    {{ number('high', 'Maximum integer roll', '5', '1', true) }}
+    <label><span>Corkian amplifier:</span>
+      <select name="tier">
+        {% for tier in range(4) %}
+          <option value="{{ tier }}"{% if form.get('tier', '0') == tier|string %} selected{% endif %}>{{ 'None' if tier == 0 else 'Tier ' ~ tier }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label><span>Apply Corkian insulator:</span>
+      <input type="checkbox" name="insulator"{% if form.get('insulator') == 'on' %} checked{% endif %}>
+    </label>
+    {{ number('locked', 'Locked stat value') }}
+
+    <fieldset>
+      <legend>What is the probability of…</legend>
+      <label><span>Event:</span>
+        <select name="event">
+          {% for value, label in [('eq', 'Exactly'), ('le', 'At most'), ('ge', 'At least'), ('between', 'Between (inclusive)')] %}
+            <option value="{{ value }}"{% if form.get('event', 'ge') == value %} selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      {{ number('target', 'Target', '4') }}
+      {{ number('upper', 'Upper target (between only)', '5') }}
+      <button name="action" value="odds">Calculate odds</button>
+    </fieldset>
+
+    <fieldset>
+      <legend>Simulate rolls (.rvs)</legend>
+      {{ number('count', 'Number of samples', '10') }}
+      {{ number('seed', 'Random seed (optional)') }}
+      <button name="action" value="sample">Simulate rolls</button>
+    </fieldset>
+  </form>
+  {% if action != 'normal' and message %}<p role="status">{{ message }}</p>{% endif %}
+  {% if probability is defined %}
+    <p role="status">Probability: {{ probability }} ({{ outcomes }} modeled outcomes)</p>
+  {% endif %}
+  {% if rolls is defined %}
+    <p class="rolls" role="status">Simulated rolls: {{ rolls|join(', ') }}</p>
+  {% endif %}
+</main>
+</body>
+</html>
